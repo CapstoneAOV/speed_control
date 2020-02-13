@@ -1,0 +1,13 @@
+<launch>
+
+  <arg name="port" default="/dev/ttyACM0" doc="Serial port connected to arduino"/>
+  <arg name="baudrate" default="115200" doc="Baudrate for connection"/>
+  <arg name="timeout" default="1" doc="Timeout for connection"/>
+
+  <node pkg="speed_control" type="speed_control.py" name="speed_control" output="screen" >
+    <param name="port" value="$(arg port)"/>
+    <param name="baudrate" value="$(arg baudrate)"/>
+    <param name="timeout" value="$(arg timeout)"/>
+  </node>
+
+</launch>
