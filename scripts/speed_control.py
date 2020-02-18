@@ -5,6 +5,8 @@ import time
 import rospy
 import std_msgs
 
+state = ''
+
 def writeout(cmd):
     print(cmd)
     i=0
@@ -28,44 +30,42 @@ def writeout(cmd):
     return response
     
 
-# def callback_direction(data):
-#     print("callback direction")
-#     pub = rospy.Publisher("Arduino_response", std_msgs.msg.String, queue_size=10)
-#     rospy.Rate(10)
-
-#     cmd = data.data
-#     if(cmd == "forward"):
-#         writeout("0.0000")              #disconnect and wait, to prevent shorting of forward/reverse
-#         time.sleep(0.1)
-#         response = writeout("0.0010")
-#     elif(cmd == "reverse"):
-#         writeout("0.0000")              #consider adding state variable to monitor forward/reverse?
-#         time.sleep(0.1)
-#         response = writeout("0.0001")       #turn velocity to zero when changing direction?
-#     else:
-#         response = "Invalid Command"      #also need to publish to error topic, error code for direction switching
-#     pub.publish(response)
-
 def callback_speed(data):
     print("Callback speed")
-    pub = rospy.Publisher("Arduino_response", std_msgs.msg.String, queue_size=10)
+    pub = rospy.Publisher("Arduino_response", std_msgs.msg.String, queue_size=1)
     rospy.Rate(10)
 
     speed = data.data
     print("speed is {0}".format(speed))
-    if(speed > 5 or speed < -0.5):      # conversion of speed to volts?
-        response = "FAIL: invalid parameters"
+    if(speed > 5 or speed < -5):      # conversion of speed to volts?
+        response = "FAIL: invalid parameters"       #need to publish to error topic, error code for direction switching
 
     elif(speed >-0.2 and speed < 0.1):
         print("turning on brakes")
         response = writeout(str(0.0) + "xxx")
-        braking_pub = rospy.Publisher('Braking', std_msgs.msg.Bool, queue_size=10)
+        braking_pub = rospy.Publisher('Braking', std_msgs.msg.Bool, queue_size=1)
         print(braking_pub)
         braking_pub.publish(True)
     
     else:
-        volts = round(speed,1)      
-        response = writeout(str(volts) + "xxx")
+        volts = round(speed,1)
+        global state
+
+        if(volts > 0):
+
+            if(state == 'reverse'):
+                response = writeout('0.0000')       #disconnect and wait, to prevent shorting of forward/reverse
+                state = 'forward'
+                time.sleep(0.01)
+            response = writeout(str(volts) + "010")
+            
+        elif(volts < 0):
+            if(state == 'forward'):
+                response = writeout('0.0000')           
+                state = 'reverse'
+                time.sleep(0.01)
+            response = writeout(str(volts) + "001")
+            
     
     pub.publish(response)        
 
