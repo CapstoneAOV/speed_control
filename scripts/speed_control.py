@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
+from ackermann_msgs.msg import AckermannDriveStamped
 import serial
 import time
 import rospy
-import std_msgs
+import std_msgs     #dont import entire library
 
 state = ''
 
@@ -32,10 +33,11 @@ def writeout(cmd):
 
 def callback_speed(data):
     print("Callback speed")
-    pub = rospy.Publisher("Arduino_response", std_msgs.msg.String, queue_size=1)
+    pub = rospy.Publisher("Arduino_response", std_msgs.msg.String, queue_size=1)    #remove
     rospy.Rate(10)
 
-    speed = data.data
+    speed = data.speed
+    print("speed sent {0}".format(speed))
     print("speed is {0}".format(speed))
     if(speed > 5 or speed < -5):      # conversion of speed to volts?
         response = "FAIL: invalid parameters"       #need to publish to error topic, error code for direction switching
@@ -72,7 +74,7 @@ def callback_speed(data):
 def listener():
     print("entered listener")
     # rospy.Subscriber("Direction", std_msgs.msg.String, callback_direction)      #can change to int
-    rospy.Subscriber("Speed", std_msgs.msg.Float32, callback_speed)
+    rospy.Subscriber("rbcar_robot_control/command", AckermannDriveStamped, callback_speed)
     rospy.spin()
 
 def main():
