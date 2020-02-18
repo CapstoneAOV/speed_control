@@ -32,6 +32,9 @@ def writeout(cmd):
     #return response
     return datetime.now()
     
+def volts_to_speed(volts):
+    speed = volts               #60 revs in 53.63s with 1V power, 120 revs/40.99s 2V
+    return speed
 
 def callback_speed(data):
     print("Callback speed")
@@ -44,7 +47,7 @@ def callback_speed(data):
     #print("data received at time {0}".format(time_now))
     #print("speed sent {0}".format(speed))
     #print("speed is {0}".format(speed))
-    if(speed > 5 or speed < -5):      # conversion of speed to volts?
+    if(speed > 3 or speed < -3):      # conversion of speed to volts?
         response = "FAIL: invalid parameters"       #need to publish to error topic, error code for direction switching
 
     elif(speed >-0.2 and speed < 0.1):
@@ -56,6 +59,7 @@ def callback_speed(data):
     else:
         volts = round(speed,1)
         global state
+        print("speed is {0}".format(volts))
 
         if(volts > 0):
 
@@ -70,7 +74,7 @@ def callback_speed(data):
                 response = writeout('0.0000')           
                 state = 'reverse'
                 time.sleep(0.01)
-            response = writeout(str(volts) + "001")
+            response = writeout(str(volts)[1:] + "001")
 
     print("time taken is under {0}".format(response - time_now))
     
