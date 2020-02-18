@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
-from ackermann_msgs.msg import AckermannDriveStamped
+#from ackermann_msgs.msg import AckermannDriveStamped
 import serial
 import time
 import rospy
 import std_msgs     #dont import entire library
+from datetime import datetime
 
 state = ''
 
@@ -12,12 +13,12 @@ def writeout(cmd):
     print(cmd)
     i=0
     write_out = str(cmd)
-    while(i<50):                   #wait for response from arduino, for up to 200 commands sent
+    while(i<6):                   #wait for response from arduino, for up to 200 commands sent
         i += 1
         ard.write(write_out.encode())
-        time.sleep(0.05) 
+        time.sleep(0.02) 
         ard.flush()
-        time.sleep(0.05)
+        time.sleep(0.02)
         response = ard.read(ard.inWaiting())    # read all characters in buffer
         if(response == write_out):                  #if response received, exit loop
             print(response + " success")
@@ -26,9 +27,10 @@ def writeout(cmd):
     if(i>=50):
         response = "FAIL: Command: {0} not sent to Arduino".format(cmd)   #publish to failure topic. consider using error code
 
-    print("{0} commands sent before {1}".format(i, write_out))        #debugging, take out
-    
-    return response
+    #print("{0} commands sent before {1}".format(i, write_out))        #debugging, take out
+    #print("command executed at time {0}".format(datetime.now()))
+    #return response
+    return datetime.now()
     
 
 def callback_speed(data):
@@ -36,17 +38,19 @@ def callback_speed(data):
     pub = rospy.Publisher("Arduino_response", std_msgs.msg.String, queue_size=1)    #remove
     rospy.Rate(10)
 
-    speed = data.speed
-    print("speed sent {0}".format(speed))
-    print("speed is {0}".format(speed))
+    #speed = data.speed
+    speed = data.data
+    time_now = datetime.now()
+    #print("data received at time {0}".format(time_now))
+    #print("speed sent {0}".format(speed))
+    #print("speed is {0}".format(speed))
     if(speed > 5 or speed < -5):      # conversion of speed to volts?
         response = "FAIL: invalid parameters"       #need to publish to error topic, error code for direction switching
 
     elif(speed >-0.2 and speed < 0.1):
-        print("turning on brakes")
+        #print("turning on brakes")
         response = writeout(str(0.0) + "xxx")
         braking_pub = rospy.Publisher('Braking', std_msgs.msg.Bool, queue_size=1)
-        print(braking_pub)
         braking_pub.publish(True)
     
     else:
@@ -67,18 +71,21 @@ def callback_speed(data):
                 state = 'reverse'
                 time.sleep(0.01)
             response = writeout(str(volts) + "001")
+
+    print("time taken is under {0}".format(response - time_now))
+    
             
     
-    pub.publish(response)        
+    #pub.publish(response)        
 
 def listener():
-    print("entered listener")
-    # rospy.Subscriber("Direction", std_msgs.msg.String, callback_direction)      #can change to int
-    rospy.Subscriber("rbcar_robot_control/command", AckermannDriveStamped, callback_speed)
+    #print("entered listener")
+    #rospy.Subscriber("rbcar_robot_control/command", AckermannDriveStamped, callback_speed)
+    rospy.Subscriber("Speed", std_msgs.msg.Float32, callback_speed)
     rospy.spin()
 
 def main():
-    print("main entered")
+    #print("main entered")
     rospy.init_node('Relay_Speed_Control', anonymous=True)
     port = rospy.get_param("~port")
     baudrate = int(rospy.get_param("~baudrate"))
@@ -91,7 +98,6 @@ def main():
         baudrate=baudrate,
         timeout=timeout
     )
-    time.sleep(2) # wait for Arduino
 
     listener()
 
